@@ -156,9 +156,12 @@ struct Preferencias{TP<:TipoPreferencias}
 end
 
 # State Indicex
-@with_kw struct StateIndices
+struct StateIndices
     z::Vector{<:Int}
     a::Vector{<:Int}
+    function StateIndices(; N_z::Ti, N_a::Ti) where {Ti<:Integer}
+        return new(kron(1:N_z, ones(Ti, N_a)), repeat(1:N_a, N_z))
+    end
 end
 
 # State variables
@@ -181,44 +184,24 @@ end
 
 
 #===========================================================================
-    TOOLS
-===========================================================================#
-
-# Matrix of state variables
-function state_matrix(N_z::Ti, N_a::Ti) where {Ti<:Integer}
-    return StateIndices(; z=kron(1:N_z, ones(Ti, N_a)), a=repeat(1:N_a, N_z))
-end
-
-# Main structure
-struct Herramientas
-    # State variables
-    process_z::MarkovProcess
-    grid_a::AbstractGrid
-    states::StateIndices
-    function Herramientas(; process_z::MarkovProcess, grid_a::AbstractGrid)
-        states = state_matrix(size(process_z), size(grid_a))
-        return new(process_z, grid_a, states)
-    end
-end
-
-# Methods
-grids(her::Herramientas) = her.process_z.grid, her.grid_a
-
-
-
-#===========================================================================
     HOUSEHOLDS
 ===========================================================================#
 
 struct Households
     N::Int
     pref::Preferencias
+    states::StateIndices
     S::StateVariables
     G::PolicyFunctions
-    function Households(her::Herramientas; tipo_pref, kwargs...)
+    process_z::MarkovProcess
+    grid_a::AbstractGrid
+    function Households(;
+        tipo_pref, process_z::MarkovProcess, grid_a::AbstractGrid, kwargs...
+    )
         # Unpack
-        @unpack states = her
-        grid_z, grid_a = grids(her)
+        grid_z = process_z.grid
+        # Matrix of state indices
+        states = StateIndices(; N_z=size(process_z), N_a=size(grid_a))
         # Number of agents
         N = size(states.a, 1)
         # Preferences
@@ -229,10 +212,11 @@ struct Households
         S = StateVariables(zz, aa)
         # Policy functions
         G = PolicyFunctions(N)
-        return new(N, pref, S, G)
+        return new(N, pref, states, S, G, process_z, grid_a)
     end
 end
-get_household_parameters() = [:tipo_pref, :β, :γ]
+get_preference_parameters() = [:tipo_pref, :β, :γ]
+grids(hh::Households) = hh.process_z.grid, hh.grid_a
 
 
 
