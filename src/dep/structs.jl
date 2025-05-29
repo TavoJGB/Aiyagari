@@ -181,7 +181,7 @@ struct Preferencias{TP<:TipoPreferencias}
     u::Function         # Utility function
     u′::Function        # Marginal utility
     inv_u′::Function    # Inverse marginal utility
-    function Preferencias(::CRRA, β::Real, γ::Real)
+    function Preferencias(::CRRA; β::Real, γ::Real)
         u = c::Real -> (γ ≈ 1.0) ? log(c) : c^(1.0-γ) / (1.0-γ)
         u′ = c::Real -> c^(-γ)
         inv_u′ = (u′) -> u′^(-1.0/γ)
@@ -212,14 +212,14 @@ struct Households
     pref::Preferencias
     S::StateVariables
     G::PolicyFunctions
-    function Households(her::Herramientas; tipo_pref, β::Real, γ::Real)
+    function Households(her::Herramientas; tipo_pref, kwargs...)
         # Unpack
         @unpack states, ind = her
         grid_z, grid_a = grids(her)
         # Number of agents
         N = size(states, 1)
         # Preferences
-        pref = Preferencias(tipo_pref, β, γ)
+        pref = Preferencias(tipo_pref; kwargs...)
         # State variables
         zz = get_node.(Ref(grid_z), states[:, ind.z])
         aa = get_node.(Ref(grid_a), states[:, ind.a])
