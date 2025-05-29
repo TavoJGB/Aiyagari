@@ -224,7 +224,7 @@ function ss_graphs(eco::Economía, her::Herramientas, cfg::GraphConfig)::Nothing
     errs_labs = repeat([""], N_z)
     errs_labs[[1,N_z]] .= ["low z", "high z"]
     plot_by_group(
-        a[unconstr], errs_eu[unconstr], cfg, 1:N_z, her.states[unconstr, her.ind.z];
+        a[unconstr], errs_eu[unconstr], cfg, 1:N_z, her.states.z[unconstr];
         ptype=scatter!, leglabs=errs_labs, tit="Euler Errors")
     Plots.savefig(figpath * "ss_euler_err.png")
     return nothing

@@ -62,7 +62,7 @@ function EGM_savings!(hh::Households, pr::Prices, her::Herramientas)::Nothing
     # Unpack
     @unpack N, pref, S = hh
     c′ = hh.G.c
-    @unpack process_z, grid_a, states, ind = her
+    @unpack process_z, grid_a, states = her
     malla_a = grid_a.nodes
     # Initialise policy function for savings
     a_EGM = similar(c′)
@@ -71,7 +71,7 @@ function EGM_savings!(hh::Households, pr::Prices, her::Herramientas)::Nothing
     a_imp = a_budget(pr, c_imp, S)
     # Invert to get policy function for savings
     for zz=1:size(process_z)
-        ind_z = (states[:, ind.z].==zz)
+        ind_z = (states.z .== zz)
         a_EGM[ind_z] = interpLinear(malla_a, a_imp[ind_z], malla_a)
     end
     # Policy function bounds
@@ -209,7 +209,8 @@ end
 function Q_matrix(a′::Vector{<:Real}, her::Herramientas)
     # Preliminaries
     N = size(a′,1)
-    @unpack grid_a, process_z, states, ind = her
+    @unpack grid_a, process_z, states = her
+    @unpack z = states  # current productivity state
     Π_z = process_z.Π
     N_z = size(process_z)
     Tr = eltype(Π_z)
@@ -221,7 +222,6 @@ function Q_matrix(a′::Vector{<:Real}, her::Herramientas)
     # Auxiliary: decision matrix
     Π_a′ = decision_mat(a′, grid_a)
     for z′=1:N_z
-        z = states[:,ind.z]                 # current productivity state
         Q_vecs!(indx_Q, indy_Q, vals_Q,     # vectors that will be appended
                 findall(z.==z′), 1:N,       # rows and columns to fill
                 Π_z[z,z′]' .* Π_a′)         # transition probabilities

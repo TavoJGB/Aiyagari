@@ -136,41 +136,7 @@ get_node(mkv::MarkovProcess, i::Int) = get_node(mkv.grid, i)
 
 
 #===========================================================================
-    TOOLS
-===========================================================================#
-
-# Matrix of state variables
-function state_matrix(N_z::Ti, N_a::Ti, ind::NamedTuple) where {Ti<:Integer}
-    # Initialise matrix
-    states = Matrix{Ti}(undef, N_a*N_z, 2)
-    # Fill it
-    states[:,ind.z] = kron(1:N_z, ones(N_a))
-    states[:,ind.a] = repeat(1:N_a, N_z)
-    # Return it
-    return states
-end
-
-# Main structure
-struct Herramientas
-    # State variables
-    process_z::MarkovProcess
-    grid_a::AbstractGrid
-    states::Matrix{<:Real}
-    ind::NamedTuple
-    function Herramientas(; process_z::MarkovProcess, grid_a::AbstractGrid)
-        ind = (z=1, a=2)
-        states = state_matrix(size(process_z), size(grid_a), ind)
-        return new(process_z, grid_a, states, ind)
-    end
-end
-
-# Methods
-grids(her::Herramientas) = her.process_z.grid, her.grid_a
-
-
-
-#===========================================================================
-    HOUSEHOLDS
+    AGENTS: AUXILIARY
 ===========================================================================#
 
 # Preferences
@@ -187,6 +153,12 @@ struct Preferencias{TP<:TipoPreferencias}
         inv_u′ = (u′) -> u′^(-1.0/γ)
         return new{CRRA}(β, u, u′, inv_u′)
     end
+end
+
+# State Indicex
+@with_kw struct StateIndices
+    z::Vector{<:Int}
+    a::Vector{<:Int}
 end
 
 # State variables
@@ -206,7 +178,38 @@ mutable struct PolicyFunctions
     end
 end
 
+
+
+#===========================================================================
+    TOOLS
+===========================================================================#
+
+# Matrix of state variables
+function state_matrix(N_z::Ti, N_a::Ti) where {Ti<:Integer}
+    return StateIndices(; z=kron(1:N_z, ones(Ti, N_a)), a=repeat(1:N_a, N_z))
+end
+
 # Main structure
+struct Herramientas
+    # State variables
+    process_z::MarkovProcess
+    grid_a::AbstractGrid
+    states::StateIndices
+    function Herramientas(; process_z::MarkovProcess, grid_a::AbstractGrid)
+        states = state_matrix(size(process_z), size(grid_a))
+        return new(process_z, grid_a, states)
+    end
+end
+
+# Methods
+grids(her::Herramientas) = her.process_z.grid, her.grid_a
+
+
+
+#===========================================================================
+    HOUSEHOLDS
+===========================================================================#
+
 struct Households
     N::Int
     pref::Preferencias
@@ -214,15 +217,15 @@ struct Households
     G::PolicyFunctions
     function Households(her::Herramientas; tipo_pref, kwargs...)
         # Unpack
-        @unpack states, ind = her
+        @unpack states = her
         grid_z, grid_a = grids(her)
         # Number of agents
-        N = size(states, 1)
+        N = size(states.a, 1)
         # Preferences
         pref = Preferencias(tipo_pref; kwargs...)
         # State variables
-        zz = get_node.(Ref(grid_z), states[:, ind.z])
-        aa = get_node.(Ref(grid_a), states[:, ind.a])
+        zz = get_node.(Ref(grid_z), states.z)
+        aa = get_node.(Ref(grid_a), states.a)
         S = StateVariables(zz, aa)
         # Policy functions
         G = PolicyFunctions(N)

@@ -9,8 +9,8 @@ function identify_group(var::Vector{<:Real}, crit::Int)
     return identify_group(var, x -> x.==crit)
 end
 function identify_group(her::Herramientas, keyvar::Symbol, crit::Function)
-    @unpack states, ind = her
-    return crit.(states[:, ind[keyvar]])
+    @unpack states = her
+    return crit.(getproperty(states, keyvar))
 end
 function identify_group(her::Herramientas, keyvar::Symbol, crit::Int)
     return identify_group(her, keyvar, x -> x.==crit)
@@ -41,11 +41,11 @@ end
 function get_mpc(eco::Economía, her::Herramientas)
     @unpack hh, distr = eco
     @unpack S, G = hh
-    @unpack process_z, states, ind = her
+    @unpack process_z, states = her
     # Initialise MPC vector
     mpc = Float64[]
     # For each combination of states (other than assets), compute MPCs
-    for indZ in eachcol(states[:,ind.z].==(1:size(process_z))')
+    for indZ in eachcol(states.z .== (1:size(process_z))')
         append!(mpc, _get_mpc(G.c[indZ], S.a[indZ]))
     end
     return mpc

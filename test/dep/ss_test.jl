@@ -4,7 +4,7 @@ function ss_test(eco::Economía, her::Herramientas; tol=1e-6)
     agg = Aggregates(eco)
     # Unpack
     @unpack hh, fm, pr, distr, Q = eco
-    @unpack states, ind, process_z = her
+    @unpack states, process_z = her
     @unpack S, G = hh
     @unpack A, A0, K, L, C, Y = agg
     
@@ -18,7 +18,7 @@ function ss_test(eco::Economía, her::Herramientas; tol=1e-6)
     # Distribution is stationary
     @test maximum(abs.(Q * distr - distr)) < tol
     # SS distribution by productivity level
-    ss_z_dist = vcat([sum(distr[indJ]) for indJ in eachcol(states[:,ind.z].==(1:size(process_z))')]...)
+    ss_z_dist = vcat([sum(distr[indJ]) for indJ in eachcol(states.z .== (1:size(process_z))')]...)
     @test maximum(abs.(ss_z_dist - process_z.ss_dist)) < tol
 
     # HOUSEHOLD'S PROBLEM
